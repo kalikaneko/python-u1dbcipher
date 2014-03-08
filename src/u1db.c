@@ -127,6 +127,9 @@ u1db_open_sqlcipher(const char *fname, const char *password, const int raw_key,
     }
 
     // TODO move to initialize_sqlcipher function
+    // TODO *actually* pass the parameters :P
+    // FIXME FIXME FIXME
+    
     status = sqlite3_exec(db->sql_handle, "PRAGMA key='foobar'", NULL, NULL, NULL);
     if (status != SQLITE_OK) {
         free(db);
