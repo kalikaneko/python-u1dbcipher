@@ -1,7 +1,7 @@
 # Copyright 2011-2012 Canonical Ltd.
 # Copyright 2014 LEAP Encryption Access Project
 #
-# This file is part of python-cu1dbcipher
+# This file is part of python-u1dbcipher
 #
 # u1db is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License version 3
@@ -308,8 +308,8 @@ cdef extern from "u1db/u1db_vectorclock.h":
     int u1db__vectorclock_is_newer(u1db_vectorclock *maybe_newer,
                                    u1db_vectorclock *older)
 
-from cu1db import errors
-from pysqlcipher import dbapi2
+from u1dbcipher import errors
+# from pysqlcipher import dbapi2
 # XXX what for?
 
 

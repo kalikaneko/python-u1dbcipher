@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 2.6)
-project (cu1db)
+project (u1dbcipher)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 include_directories(${CMAKE_SOURCE_DIR}/include)
@@ -42,7 +42,7 @@ add_custom_target( ReplicatePythonSourceTree ALL ${CMAKE_COMMAND} -P
 
 add_custom_target(build-inplace-for-tests
     COMMAND python setup.py build_ext -i -f -I ${CMAKE_SOURCE_DIR}/include -R ${CMAKE_BINARY_DIR}/src
-    DEPENDS ReplicatePythonSourceTree cu1db
+    DEPENDS ReplicatePythonSourceTree u1dbcipher
 )
 
 SET(CPACK_GENERATOR "TGZ")
@@ -53,7 +53,7 @@ add_custom_target(install-python ALL
     # Do NOT build this one in-place
     COMMAND python setup.py build_ext -f -I ${CMAKE_SOURCE_DIR}/include -R ${CMAKE_BINARY_DIR}/src
     COMMAND python setup.py install --prefix=${CMAKE_INSTALL_PREFIX} --root=${CMAKE_CURRENT_BINARY_DIR}/temp
-    DEPENDS ReplicatePythonSourceTree cu1db
+    DEPENDS ReplicatePythonSourceTree u1dbcipher
 )
 
 install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/temp/${CMAKE_INSTALL_PREFIX}/

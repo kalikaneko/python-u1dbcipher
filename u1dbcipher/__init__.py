@@ -15,15 +15,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-cu1db
-python bindings for libu1db
+u1dbcipher
+python bindings for libu1db with SQLCipher support
 """
 
 __version_info__ = (13, 10)
 __version__ = '.'.join(map(lambda x: '%02d' % x, __version_info__))
 
 try:
-    from cu1db import _u1db
+    from u1dbcipher import _u1db
     assert(_u1db)
 except ImportError as exc:
     print "Cannot import _u1db extension: %s" % exc.message
