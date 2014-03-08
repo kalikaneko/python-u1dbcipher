@@ -19,5 +19,11 @@ cu1db
 python bindings for libu1db
 """
 
-__version_info__ = (10, 13)
+__version_info__ = (13, 10)
 __version__ = '.'.join(map(lambda x: '%02d' % x, __version_info__))
+
+try:
+    from cu1db import _u1db
+    assert(_u1db)
+except ImportError as exc:
+    print "Cannot import _u1db extension: %s" % exc.message
