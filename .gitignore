@@ -1,2 +1,13 @@
 *.pyc
+*.a
+*.cmake
+src/*.cmake
+CMakeCache.txt
+Makefile
+src/Makefile
+u1dbcipher/_u1db.c
 build/
+dist/
+CMakeFiles/
+temp/
+*.egg-info
