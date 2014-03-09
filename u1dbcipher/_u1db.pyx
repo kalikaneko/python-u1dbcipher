@@ -921,7 +921,8 @@ cdef class CSQLCipherDatabase(object):
     cdef int kdf_iter
     cdef int cipher_page_size
 
-    def __init__(self, filename, password, raw_key=False, cipher="aes-256-cbc",
+    def __init__(self, filename, password,
+                 raw_key=False, cipher="aes-256-cbc",
                  kdf_iter=4000, cipher_page_size=1024):
         self._supports_indexes = False  # XXX ugh! :( why??!
         self._filename = filename
@@ -929,15 +930,6 @@ cdef class CSQLCipherDatabase(object):
         self._db = u1db_open_sqlcipher(self._filename, password,
                                        raw_key, cipher,
                                        kdf_iter, cipher_page_size)
-        # XXX will have to modify u1db_open... and link it against sqlcipher
-        # self._db = u1db_open(self._filename)
-        #self._db = dbapi2.connect(
-        #    self._filename,
-            #isolation_level=SQLITE_ISOLATION_LEVEL,
-            #check_same_thread=SQLITE_CHECK_SAME_THREAD)
-        #self._set_crypto_pragmas(
-        #    self._db, password, raw_key, cipher, kdf_iter,
-        #    cipher_page_size)
 
     def __dealloc__(self):
         u1db_free(&self._db)
@@ -1425,182 +1417,6 @@ cdef class CSQLCipherDatabase(object):
         handle_status("get_sync_target",
             u1db__get_sync_target(target._db._db, &target._st))
         return target
-
-
-    # Soledada-sqlcipher methods
-    # XXX cdef stuff all the way
-    @classmethod
-    def _set_crypto_pragmas(cls, db_handle, key, raw_key, cipher, kdf_iter,
-                            cipher_page_size):
-        """
-        Set cryptographic params (key, cipher, KDF number of iterations and
-        cipher page size).
-        """
-        cls._pragma_key(db_handle, key, raw_key)
-        cls._pragma_cipher(db_handle, cipher)
-        cls._pragma_kdf_iter(db_handle, kdf_iter)
-        cls._pragma_cipher_page_size(db_handle, cipher_page_size)
-
-    @classmethod
-    def _pragma_key(cls, db_handle, key, raw_key):
-        """
-        Set the C{key} for use with the database.
-
-        The process of creating a new, encrypted database is called 'keying'
-        the database. SQLCipher uses just-in-time key derivation at the point
-        it is first needed for an operation. This means that the key (and any
-        options) must be set before the first operation on the database. As
-        soon as the database is touched (e.g. SELECT, CREATE TABLE, UPDATE,
-        etc.) and pages need to be read or written, the key is prepared for
-        use.
-
-        Implementation Notes:
-
-        * PRAGMA key should generally be called as the first operation on a
-          database.
-
-        :param key: The key for use with the database.
-        :type key: str
-        :param raw_key: Whether C{key} is a raw 64-char hex string or a
-            passphrase that should be hashed to obtain the encyrption key.
-        :type raw_key: bool
-        """
-        if raw_key:
-            cls._pragma_key_raw(db_handle, key)
-        else:
-            cls._pragma_key_passphrase(db_handle, key)
-
-    @classmethod
-    def _pragma_key_passphrase(cls, db_handle, passphrase):
-        """
-        Set a passphrase for encryption key derivation.
-
-        The key itself can be a passphrase, which is converted to a key using
-        PBKDF2 key derivation. The result is used as the encryption key for
-        the database. By using this method, there is no way to alter the KDF;
-        if you want to do so you should use a raw key instead and derive the
-        key using your own KDF.
-
-        :param db_handle: A handle to the SQLCipher database.
-        :type db_handle: pysqlcipher.Connection
-        :param passphrase: The passphrase used to derive the encryption key.
-        :type passphrase: str
-        """
-        db_handle.cursor().execute("PRAGMA key = '%s'" % passphrase)
-
-    @classmethod
-    def _pragma_key_raw(cls, db_handle, key):
-        """
-        Set a raw hexadecimal encryption key.
-
-        It is possible to specify an exact byte sequence using a blob literal.
-        With this method, it is the calling application's responsibility to
-        ensure that the data provided is a 64 character hex string, which will
-        be converted directly to 32 bytes (256 bits) of key data.
-
-        :param db_handle: A handle to the SQLCipher database.
-        :type db_handle: pysqlcipher.Connection
-        :param key: A 64 character hex string.
-        :type key: str
-        """
-        if not all(c in string.hexdigits for c in key):
-            raise NotAnHexString(key)
-        db_handle.cursor().execute('PRAGMA key = "x\'%s"' % key)
-
-    @classmethod
-    def _pragma_cipher(cls, db_handle, cipher='aes-256-cbc'):
-        """
-        Set the cipher and mode to use for symmetric encryption.
-
-        SQLCipher uses aes-256-cbc as the default cipher and mode of
-        operation. It is possible to change this, though not generally
-        recommended, using PRAGMA cipher.
-
-        SQLCipher makes direct use of libssl, so all cipher options available
-        to libssl are also available for use with SQLCipher. See `man enc` for
-        OpenSSL's supported ciphers.
-
-        Implementation Notes:
-
-        * PRAGMA cipher must be called after PRAGMA key and before the first
-          actual database operation or it will have no effect.
-
-        * If a non-default value is used PRAGMA cipher to create a database,
-          it must also be called every time that database is opened.
-
-        * SQLCipher does not implement its own encryption. Instead it uses the
-          widely available and peer-reviewed OpenSSL libcrypto for all
-          cryptographic functions.
-
-        :param db_handle: A handle to the SQLCipher database.
-        :type db_handle: pysqlcipher.Connection
-        :param cipher: The cipher and mode to use.
-        :type cipher: str
-        """
-        db_handle.cursor().execute("PRAGMA cipher = '%s'" % cipher)
-
-    @classmethod
-    def _pragma_kdf_iter(cls, db_handle, kdf_iter=4000):
-        """
-        Set the number of iterations for the key derivation function.
-
-        SQLCipher uses PBKDF2 key derivation to strengthen the key and make it
-        resistent to brute force and dictionary attacks. The default
-        configuration uses 4000 PBKDF2 iterations (effectively 16,000 SHA1
-        operations). PRAGMA kdf_iter can be used to increase or decrease the
-        number of iterations used.
-
-        Implementation Notes:
-
-        * PRAGMA kdf_iter must be called after PRAGMA key and before the first
-          actual database operation or it will have no effect.
-
-        * If a non-default value is used PRAGMA kdf_iter to create a database,
-          it must also be called every time that database is opened.
-
-        * It is not recommended to reduce the number of iterations if a
-          passphrase is in use.
-
-        :param db_handle: A handle to the SQLCipher database.
-        :type db_handle: pysqlcipher.Connection
-        :param kdf_iter: The number of iterations to use.
-        :type kdf_iter: int
-        """
-        db_handle.cursor().execute("PRAGMA kdf_iter = '%d'" % kdf_iter)
-
-    @classmethod
-    def _pragma_cipher_page_size(cls, db_handle, cipher_page_size=1024):
-        """
-        Set the page size of the encrypted database.
-
-        SQLCipher 2 introduced the new PRAGMA cipher_page_size that can be
-        used to adjust the page size for the encrypted database. The default
-        page size is 1024 bytes, but it can be desirable for some applications
-        to use a larger page size for increased performance. For instance,
-        some recent testing shows that increasing the page size can noticeably
-        improve performance (5-30%) for certain queries that manipulate a
-        large number of pages (e.g. selects without an index, large inserts in
-        a transaction, big deletes).
-
-        To adjust the page size, call the pragma immediately after setting the
-        key for the first time and each subsequent time that you open the
-        database.
-
-        Implementation Notes:
-
-        * PRAGMA cipher_page_size must be called after PRAGMA key and before
-          the first actual database operation or it will have no effect.
-
-        * If a non-default value is used PRAGMA cipher_page_size to create a
-          database, it must also be called every time that database is opened.
-
-        :param db_handle: A handle to the SQLCipher database.
-        :type db_handle: pysqlcipher.Connection
-        :param cipher_page_size: The page size.
-        :type cipher_page_size: int
-        """
-        db_handle.cursor().execute(
-            "PRAGMA cipher_page_size = '%d'" % cipher_page_size)
 
 
 cdef class VectorClockRev:

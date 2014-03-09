@@ -119,6 +119,12 @@ u1db_open_sqlcipher(const char *fname, const char *password, const int raw_key,
           const char *cipher, const int kdf_iter, const int cipher_page_size)
 {
     u1database *db = (u1database *)(calloc(1, sizeof(u1database)));
+
+    char pragma_key[1024];
+    char pragma_cipher[256];
+    char pragma_kdf_iter[256];
+    char pragma_cipher_page_size[256];
+
     int status;
     status = sqlite3_open(fname, &db->sql_handle);
     if(status != SQLITE_OK) {
@@ -128,32 +134,36 @@ u1db_open_sqlcipher(const char *fname, const char *password, const int raw_key,
     }
 
     // TODO move to initialize_sqlcipher function
-    // TODO *actually* pass the parameters :P
-    // FIXME FIXME FIXME
     
-    status = sqlite3_exec(db->sql_handle, "PRAGMA key='foobar'", NULL, NULL, NULL);
+    snprintf(pragma_key, sizeof(pragma_key), "PRAGMA key='%s'", password);
+    status = sqlite3_exec(db->sql_handle, pragma_key, NULL, NULL, NULL);
     if (status != SQLITE_OK) {
         free(db);
         return NULL;
     }
 
-    status = sqlite3_exec(db->sql_handle, "PRAGMA cipher='aes-256-cbc'", NULL, NULL, NULL);
+    snprintf(pragma_cipher, sizeof(pragma_cipher), "PRAGMA cipher='%s'", cipher);
+    status = sqlite3_exec(db->sql_handle, pragma_cipher, NULL, NULL, NULL);
     if (status != SQLITE_OK) {
         free(db);
         return NULL;
     }
 
-    status = sqlite3_exec(db->sql_handle, "PRAGMA kdf_iter='4000'", NULL, NULL, NULL);
+    snprintf(pragma_kdf_iter, sizeof(pragma_kdf_iter), "PRAGMA kdf_iter='%d'", kdf_iter);
+    status = sqlite3_exec(db->sql_handle, pragma_kdf_iter, NULL, NULL, NULL);
     if (status != SQLITE_OK) {
         free(db);
         return NULL;
     }
 
-    status = sqlite3_exec(db->sql_handle, "PRAGMA cipher_page_size='1024'", NULL, NULL, NULL);
+    snprintf(pragma_cipher_page_size, sizeof(pragma_cipher_page_size), "PRAGMA cipher_page_size='%d'", cipher_page_size);
+    status = sqlite3_exec(db->sql_handle, pragma_cipher_page_size, NULL, NULL, NULL);
     if (status != SQLITE_OK) {
         free(db);
         return NULL;
     }
+
+    // TODO add here the rest of the PRAGMAS ---
 
     // TODO: surely this is not right? We should get the db sqlite, and only if
     // that fails because it's not there, should we initialize?!?
