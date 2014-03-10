@@ -18,6 +18,15 @@
 """
 A Cython wrapper around the C implementation of U1DB Database backend.
 """
+# If cjson implementation is present, we happily will use it.
+try:
+    from cjson import encode as json_encode
+except ImportError:
+    from json import dumps as json_encode
+
+from u1dbcipher import errors
+# from pysqlcipher import dbapi2
+# XXX what for?
 
 cdef extern from "Python.h":
     object PyString_FromStringAndSize(char *s, Py_ssize_t n)
@@ -307,10 +316,6 @@ cdef extern from "u1db/u1db_vectorclock.h":
     int u1db__vectorclock_as_str(u1db_vectorclock *clock, char **result)
     int u1db__vectorclock_is_newer(u1db_vectorclock *maybe_newer,
                                    u1db_vectorclock *older)
-
-from u1dbcipher import errors
-# from pysqlcipher import dbapi2
-# XXX what for?
 
 
 cdef int _append_trans_info_to_list(void *context, const_char_ptr doc_id,
@@ -1028,6 +1033,13 @@ cdef class CSQLCipherDatabase(object):
             return res
         finally:
             u1db__free_table(&tbl)
+
+    def create_doc(self, content, doc_id=None):
+        cdef char *c_doc_id
+        if not isinstance(content, dict):
+            raise errors.InvalidContent
+        json_string = json_encode(content)
+        return self.create_doc_from_json(json_string, doc_id)
 
     def create_doc_from_json(self, json, doc_id=None):
         cdef u1db_document *doc = NULL

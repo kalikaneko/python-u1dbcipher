@@ -52,7 +52,7 @@ to the ``open`` function for the encryption key::
 
     import u1dbcipher as u1db
     db = u1db.open("/tmp/test.db", "sekret")
-    doc = db.create_doc_from_json("{'theanswer': 42}")
+    doc = db.create_doc({'theanswer': 42})
     print "document id: %s" % doc.doc_id
     print "document revision: %s" % doc.rev
 
@@ -74,3 +74,6 @@ You can visually check that the database file is encrypted::
     00000080  35 6d c0 00 23 63 3b 96  83 83 6f e1 19 fd 0f 44  |5m..#c;...o....D|
     00000090  b1 69 82 ab 12 de 5d 4a  60 2a 9d f2 31 58 60 b3  |.i....]J`*..1X`.|
 
+Dependencies
+============
+if ``python-cjson`` is avaiable, it will be used instead of builtin json module.
